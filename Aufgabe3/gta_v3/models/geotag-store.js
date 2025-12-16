@@ -23,10 +23,42 @@
  * - The proximity constrained is the same as for 'getNearbyGeoTags'.
  * - Keyword matching should include partial matches from name or hashtag fields. 
  */
-class InMemoryGeoTagStore{
+class InMemoryGeoTagStore {
+  #geotags = [];
 
-    // TODO: ... your code here ...
+  addGeoTag(geotag) {
+    this.#geotags.push(geotag);
+  }
 
+  removeGeoTag(name) {
+    this.#geotags = this.#geotags.filter(gt => gt.name !== name);
+  }
+
+  // proximity ca 0.5 damit es ungefähr in der selben straße liegt
+  getNearbyGeoTags(location) {
+    const lat = location.latitude;
+    const lon = location.longitude;
+    const PROXIMITY = 0.001; 
+
+    return this.#geotags.filter(gt => {
+      return (
+        Math.abs(gt.latitude - lat) <= PROXIMITY &&
+        Math.abs(gt.longitude - lon) <= PROXIMITY
+      );
+    });
+  }
+
+  searchNearbyGeoTags(location, keyword) {
+    const kw = keyword.toLowerCase();
+
+    return this.getNearbyGeoTags(location).filter(gt => {
+      return (
+        gt.name.toLowerCase().includes(kw) ||
+        gt.hashtag.toLowerCase().includes(kw)
+      );
+    });
+  }
 }
 
-module.exports = InMemoryGeoTagStore
+module.exports = InMemoryGeoTagStore;
+

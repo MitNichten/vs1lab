@@ -135,7 +135,7 @@ header h1:hover { color: #D34E4E; }
   background-color: #1E1F22;
   color: #E0E0E0;
   padding: 1.5rem;
-  max-width: 1100px;
+  max-width: 1500px !important;
   margin: 1.5rem auto;
 }
 
@@ -184,6 +184,14 @@ legend {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Map soll nicht mit der Liste wachsen */
+.discovery__map {
+  min-height: 240px;  /* damit sie bei 0 Tags nicht mini ist */
+  max-height: 400px;  /* damit sie nie riesig wird */
+  height: 300px;      /* "Normalhöhe" */
+  overflow: hidden;   /* verhindert, dass Inhalt rausläuft */
 }
 
 /* Ergebnisliste: große Boxen, Text links, flexible Höhe */
@@ -254,7 +262,7 @@ footer {
 
 /* RESPONSIVE */
 
-@media (max-width: 900px) {
+@media (max-width: 860px) {
   .row {
     flex-direction: column;
     gap: 1rem;
