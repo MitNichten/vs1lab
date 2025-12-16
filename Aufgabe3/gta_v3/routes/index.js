@@ -40,8 +40,9 @@ const GeoTagStore = require('../models/geotag-store');
  * As response, the ejs-template is rendered without geotag objects.
  */
 
-// TODO: extend the following route example if necessary
+// TODO: extend the following route example if necessary EDIT: Extended by Sample Geotags------------------------------
 router.get('/', (req, res) => {
+  const store = req.app.locals.geoTagStore; 
   res.render('index', { taglist: [] })
 });
 

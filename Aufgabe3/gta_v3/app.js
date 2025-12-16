@@ -5,6 +5,11 @@
  * It's a template for exercise VS1lab/Aufgabe3
  * Complete all TODOs in the code documentation.
  */
+//TODO: -------------------------------------------------------------
+const InMemoryGeoTagStore = require('./models/geotag-store');
+const GeoTag = require('./models/geotag');
+const GeoTagExamples = require('./models/geotag-examples');
+
 
 /**
  * Define module dependencies.
@@ -41,7 +46,18 @@ app.use(express.urlencoded({ extended: false }));
  * Configure path for static content.
  * Test the result in a browser here: 'http://localhost:3000/'.
  */
+//TODO--------------------------------------------------------------------------------------------------------
 
+// GeoTagStore initialisieren
+const geoTagStore = new InMemoryGeoTagStore();
+
+// Beispieldaten laden
+GeoTagExamples.tagList.forEach(([name, lat, lon, hashtag]) => {
+  geoTagStore.addGeoTag(new GeoTag(name, lat, lon, hashtag));
+});
+
+// Store für alle Routen verfügbar machen
+app.locals.geoTagStore = geoTagStore;
 
 //TODO:------------------------------------------------------------------------------------------------------
 app.use(express.static(path.join(__dirname, 'public')));
