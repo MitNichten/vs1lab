@@ -38,7 +38,7 @@ class InMemoryGeoTagStore {
   getNearbyGeoTags(location) {
     const lat = location.latitude;
     const lon = location.longitude;
-    const PROXIMITY = 0.05; 
+    const PROXIMITY = 0.001; 
 
     return this.#geotags.filter(gt => {
       return (
