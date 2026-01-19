@@ -31,7 +31,6 @@ const GeoTagStore = require('../models/geotag-store');
 
 /**
  * Route '/' for HTTP 'GET' requests.
- * (http://expressjs.com/de/4x/api.html#app.get.method)
  *
  * Requests cary no parameters
  *
@@ -41,10 +40,6 @@ const GeoTagStore = require('../models/geotag-store');
 router.get('/', (req, res) => {
   res.render('index', { taglist: [] });
 });
-
-/**
- * Route '/tagging' for HTTP 'POST' requests.
- */
 
 router.post('/tagging', (req, res) => {
   const store = req.app.locals.geoTagStore;
@@ -62,10 +57,6 @@ router.post('/tagging', (req, res) => {
     longitude
   });
 });
-
-/**
- * Route '/discovery' for HTTP 'POST' requests.
- */
 
 router.post('/discovery', (req, res) => {
   const store = req.app.locals.geoTagStore;
@@ -94,10 +85,8 @@ router.post('/discovery', (req, res) => {
 
 /**
  * Route '/api/geotags' for HTTP 'GET' requests.
- * (http://expressjs.com/de/4x/api.html#app.get.method)
  *
  * Requests contain the fields of the Discovery form as query.
- * (http://expressjs.com/de/4x/api.html#req.query)
  *
  * As a response, an array with Geo Tag objects is rendered as JSON.
  * If 'searchterm' is present, it will be filtered by search term.
@@ -105,63 +94,132 @@ router.post('/discovery', (req, res) => {
  */
 
 // TODO: ... your code here ...
+router.get('/api/geotags', (req, res) => {
+  const store = req.app.locals.geoTagStore;
 
+  const searchterm = req.query.searchterm;
+  const latitude = req.query.latitude;
+  const longitude = req.query.longitude;
+  const radius = req.query.radius;
+
+  let taglist;
+
+  if (latitude !== undefined && longitude !== undefined) {
+    const location = { latitude: Number(latitude), longitude: Number(longitude) };
+    const r = radius !== undefined ? Number(radius) : 0.01;
+
+    if (searchterm && searchterm !== '') {
+      taglist = store.searchNearbyGeoTags(location, searchterm, r);
+    } else {
+      taglist = store.getNearbyGeoTags(location, r);
+    }
+  } else {
+    taglist = store.getAllGeoTags();
+  }
+
+  res.json(taglist);
+});
 
 /**
  * Route '/api/geotags' for HTTP 'POST' requests.
- * (http://expressjs.com/de/4x/api.html#app.post.method)
  *
  * Requests contain a GeoTag as JSON in the body.
- * (http://expressjs.com/de/4x/api.html#req.body)
  *
  * The URL of the new resource is returned in the header as a response.
  * The new resource is rendered as JSON in the response.
  */
 
 // TODO: ... your code here ...
+router.post('/api/geotags', (req, res) => {
+  const store = req.app.locals.geoTagStore;
 
+  const tag = new GeoTag(
+    req.body.name,
+    Number(req.body.latitude),
+    Number(req.body.longitude),
+    req.body.hashtag
+  );
+
+  const created = store.addGeoTag(tag);
+
+  res
+    .status(201)
+    .location(`/api/geotags/${created.id}`)
+    .json(created);
+});
 
 /**
  * Route '/api/geotags/:id' for HTTP 'GET' requests.
- * (http://expressjs.com/de/4x/api.html#app.get.method)
  *
  * Requests contain the ID of a tag in the path.
- * (http://expressjs.com/de/4x/api.html#req.params)
  *
  * The requested tag is rendered as JSON in the response.
  */
 
 // TODO: ... your code here ...
+router.get('/api/geotags/:id', (req, res) => {
+  const store = req.app.locals.geoTagStore;
 
+  const tag = store.getGeoTagById(req.params.id);
+  if (!tag) {
+    res.status(404).end();
+    return;
+  }
+
+  res.json(tag);
+});
 
 /**
  * Route '/api/geotags/:id' for HTTP 'PUT' requests.
- * (http://expressjs.com/de/4x/api.html#app.put.method)
  *
  * Requests contain the ID of a tag in the path.
- * (http://expressjs.com/de/4x/api.html#req.params)
  * 
  * Requests contain a GeoTag as JSON in the body.
- * (http://expressjs.com/de/4x/api.html#req.query)
  *
  * Changes the tag with the corresponding ID to the sent value.
  * The updated resource is rendered as JSON in the response. 
  */
 
 // TODO: ... your code here ...
+router.put('/api/geotags/:id', (req, res) => {
+  const store = req.app.locals.geoTagStore;
 
+  const updated = new GeoTag(
+    req.body.name,
+    Number(req.body.latitude),
+    Number(req.body.longitude),
+    req.body.hashtag
+  );
+
+  const result = store.updateGeoTagById(req.params.id, updated);
+  if (!result) {
+    res.status(404).end();
+    return;
+  }
+
+  res.json(result);
+});
 
 /**
  * Route '/api/geotags/:id' for HTTP 'DELETE' requests.
- * (http://expressjs.com/de/4x/api.html#app.delete.method)
  *
  * Requests contain the ID of a tag in the path.
- * (http://expressjs.com/de/4x/api.html#req.params)
  *
  * Deletes the tag with the corresponding ID.
  * The deleted resource is rendered as JSON in the response.
  */
 
 // TODO: ... your code here ...
+router.delete('/api/geotags/:id', (req, res) => {
+  const store = req.app.locals.geoTagStore;
+
+  const deleted = store.deleteGeoTagById(req.params.id);
+  if (!deleted) {
+    res.status(404).end();
+    return;
+  }
+
+  res.json(deleted);
+});
 
 module.exports = router;

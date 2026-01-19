@@ -1,0 +1,39 @@
+### Create GeoTag (POST /api/geotags)  -> expect 201 + Location header + JSON with id
+POST http://localhost:3001/api/geotags
+Content-Type: application/json
+
+{
+  "name": "Park",
+  "latitude": 49.01,
+  "longitude": 8.40,
+  "hashtag": "#nature"
+}
+
+### Read all GeoTags (GET /api/geotags) -> expect JSON array (contains the new tag)
+GET http://localhost:3001/api/geotags
+
+### Read single GeoTag (GET /api/geotags/:id)
+# Set the id manually to the value from the Location header (e.g. 12)
+@id = 14
+GET http://localhost:3001/api/geotags/{{id}}
+
+### Update GeoTag (PUT /api/geotags/:id) -> expect updated JSON with same id
+PUT http://localhost:3001/api/geotags/{{id}}
+Content-Type: application/json
+
+{
+  "name": "Updated Park",
+  "latitude": 49.02,
+  "longitude": 8.41,
+  "hashtag": "#updated"
+}
+
+### Search GeoTags (GET /api/geotags?...) -> expect filtered JSON array
+GET http://localhost:3001/api/geotags?latitude=49.02&longitude=8.41&searchterm=Updated
+
+### Delete GeoTag (DELETE /api/geotags/:id) -> expect deleted JSON (or 200/204 depending on impl)
+DELETE http://localhost:3001/api/geotags/{{id}}
+
+### Verify deletion (GET /api/geotags/:id) -> expect 404
+GET http://localhost:3001/api/geotags/{{id}}
+
