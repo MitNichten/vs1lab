@@ -158,6 +158,9 @@ header h1:hover { color: #D34E4E; }
 
 /* DISCOVERY */
 
+#map{
+  height:300px;
+}
 .discovery__wrapper {
   margin-top: 1rem;
 }
