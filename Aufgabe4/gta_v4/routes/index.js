@@ -38,8 +38,14 @@ const GeoTagStore = require('../models/geotag-store');
  */
 
 router.get('/', (req, res) => {
-  res.render('index', { taglist: [] });
+  res.render('index', {
+    taglist: [],
+    latitude: '',
+    longitude: ''
+  });
 });
+
+
 
 router.post('/tagging', (req, res) => {
   const store = req.app.locals.geoTagStore;

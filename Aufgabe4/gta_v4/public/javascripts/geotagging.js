@@ -42,6 +42,7 @@ function updateDiscoveryWidget(tags) {
     document.getElementById("disc-longitude")?.value ||
     document.getElementById("longitude")?.value;
 
+  // Marker werden clientseitig aktualisiert (kein Server-Render mehr)
   if (lat && lon) {
     mapManager.updateMarkers(Number(lat), Number(lon), tags || []);
   }
@@ -81,14 +82,17 @@ function updateLocation() {
  * TODO: 'registerHandlers'
  * Register event listeners and prevent default form submission.
  */
+
+// Zentrale Umstellung von Formular-Submit zu EventListener + AJAX
 function registerHandlers() {
   const tagForm = document.getElementById("tag-form");
   const discoveryForm = document.getElementById("discoveryFilterForm");
 
   tagForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!tagForm.checkValidity()) return tagForm.reportValidity();
+    e.preventDefault(); //verhindert refresh
+    if (!tagForm.checkValidity()) return tagForm.reportValidity(); //ob der neue tag regelkonform ist
 
+    // GeoTag wird  erzeugt
     const tag = new GeoTag(
       document.getElementById("name").value,
       document.getElementById("latitude").value,
@@ -96,18 +100,21 @@ function registerHandlers() {
       document.getElementById("hashtag").value
     );
 
+     // AJAX POST mit JSON statt Form-Submit
     const resp = await fetch("/api/geotags", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(tag),
     });
-    if (!resp.ok) return;
+    if (!resp.ok) return; //checkt obs geklappt hat, sonst return
 
     updateDiscoveryWidget(await searchGeoTags());
   });
 
+
+  // Discovery-Formular = AJAX GET statt POST + Render
   discoveryForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    e.preventDefault(); //refresh verhindern
     if (!discoveryForm.checkValidity()) return discoveryForm.reportValidity();
     updateDiscoveryWidget(await searchGeoTags());
   });
@@ -122,14 +129,14 @@ async function searchGeoTags() {
   const lon = document.getElementById("disc-longitude")?.value ?? "";
   const searchterm = document.getElementById("searchterm")?.value ?? "";
 
-  const qs = new URLSearchParams();
+  const qs = new URLSearchParams(); //
   if (lat) qs.set("latitude", lat);
   if (lon) qs.set("longitude", lon);
   if (searchterm) qs.set("searchterm", searchterm);
 
-  const resp = await fetch(`/api/geotags?${qs.toString()}`);
+  const resp = await fetch(`/api/geotags?${qs.toString()}`); //
   if (!resp.ok) return [];
-  return resp.json();
+  return resp.json(); //
 }
 
 // Wait for the page to fully load its DOM content, then call updateLocation
