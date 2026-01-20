@@ -14,7 +14,7 @@ GET http://localhost:3001/api/geotags
 
 ### Read single GeoTag (GET /api/geotags/:id)
 # Set the id manually to the value from the Location header (e.g. 12)
-@id = 14
+@id = 15
 GET http://localhost:3001/api/geotags/{{id}}
 
 ### Update GeoTag (PUT /api/geotags/:id) -> expect updated JSON with same id
