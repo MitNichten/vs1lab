@@ -1,39 +1,53 @@
-// File origin: VS1LAB A3
+// File origin: VS1LAB A4 (based on A2)
 
 /* eslint-disable no-unused-vars */
 
 // This script is executed when the browser loads index.html.
 
-// "console.log" writes to the browser's console. 
+// "console.log" writes to the browser's console.
 // The console window must be opened explicitly in the browser.
 // Try to find this output in the browser...
 console.log("The geoTagging script is going to start...");
 
+class GeoTag {
+  constructor(name, latitude, longitude, hashtag) {
+    this.name = name;
+    this.latitude = Number(latitude);
+    this.longitude = Number(longitude);
+    this.hashtag = hashtag;
+  }
+}
+
 const mapManager = new MapManager();
 
 /**
- * Helper: read taglist from #map data-tags (Aufgabe 3.2.3)
- * Server writes JSON string into data-tags. Client parses it back to an array.
+ * TODO: 'updateDiscoveryWidget'
+ * Update discovery results and map without reloading the page.
  */
-function readTagsFromMapDataAttribute() {
-  const mapContainer = document.getElementById("map");
-  const raw = mapContainer?.dataset?.tags || "[]";
-
-  try {
-    const tags = JSON.parse(raw);
-    if (!Array.isArray(tags)) return [];
-
-    // Ensure numeric coordinates for Leaflet
-    return tags
-      .map((t) => ({
-        ...t,
-        latitude: Number(t.latitude),
-        longitude: Number(t.longitude),
-      }))
-      .filter((t) => !Number.isNaN(t.latitude) && !Number.isNaN(t.longitude));
-  } catch (e) {
-    return [];
+function updateDiscoveryWidget(tags) {
+  const ul = document.getElementById("discoveryResults");
+  if (ul) {
+    ul.innerHTML = "";
+    (tags || []).forEach((t) => {
+      const li = document.createElement("li");
+      li.textContent = `${t.name} (${t.latitude},${t.longitude}) ${t.hashtag || ""}`;
+      ul.appendChild(li);
+    });
   }
+
+  const lat =
+    document.getElementById("disc-latitude")?.value ||
+    document.getElementById("latitude")?.value;
+  const lon =
+    document.getElementById("disc-longitude")?.value ||
+    document.getElementById("longitude")?.value;
+
+  if (lat && lon) {
+    mapManager.updateMarkers(Number(lat), Number(lon), tags || []);
+  }
+
+  const mapDiv = document.getElementById("map");
+  if (mapDiv) mapDiv.dataset.tags = JSON.stringify(tags || []);
 }
 
 /**
@@ -42,79 +56,87 @@ function readTagsFromMapDataAttribute() {
  * It is called once the page has been fully loaded.
  */
 function updateLocation() {
-  // 1) Formularfelder auslesen
   const tagLat = document.getElementById("latitude");
   const tagLon = document.getElementById("longitude");
-
-  // Discovery-Formular (hidden inputs)
   const discLat = document.getElementById("disc-latitude");
   const discLon = document.getElementById("disc-longitude");
 
-  // Prüfen, ob Koordinaten schon vorhanden sind (Tagging ODER Discovery)
-  const latValue = (tagLat?.value || discLat?.value || "").trim();
-  const lonValue = (tagLon?.value || discLon?.value || "").trim();
-  const latAlreadySet = latValue !== "";
-  const lonAlreadySet = lonValue !== "";
-
-  // 2) FALL A: Koordinaten sind schon da -> KEIN GeoLocation-Aufruf
-  if (latAlreadySet && lonAlreadySet) {
-    const latitude = latValue;
-    const longitude = lonValue;
-
-    // Karte direkt initialisieren
-    mapManager.initMap(latitude, longitude);
-
-    // Aufgabe 3.2.3: Marker für Discovery-Ergebnisse setzen
-    const tags = readTagsFromMapDataAttribute();
-    mapManager.updateMarkers(Number(latitude), Number(longitude), tags);
-
-    // Platzhalter entfernen
-    const mapContainer = document.getElementById("map");
-    if (mapContainer) {
-      const img = mapContainer.querySelector("img");
-      const span = mapContainer.querySelector("span");
-      if (img) img.remove();
-      if (span) span.remove();
-    }
-
-    return; // wichtig: Funktion hier beenden
+  if (tagLat?.value && tagLon?.value) {
+    if (discLat) discLat.value = tagLat.value;
+    if (discLon) discLon.value = tagLon.value;
+    mapManager.initMap(tagLat.value, tagLon.value);
+    return;
   }
 
-  // 3) FALL B: Koordinaten fehlen -> GeoLocation API verwenden
-  try {
-    LocationHelper.findLocation((helper) => {
-      const latitude = helper.latitude;
-      const longitude = helper.longitude;
+  LocationHelper.findLocation((helper) => {
+    if (tagLat) tagLat.value = helper.latitude;
+    if (tagLon) tagLon.value = helper.longitude;
+    if (discLat) discLat.value = helper.latitude;
+    if (discLon) discLon.value = helper.longitude;
+    mapManager.initMap(helper.latitude, helper.longitude);
+  });
+}
 
-      // Formulare füllen
-      if (tagLat) tagLat.value = latitude;
-      if (tagLon) tagLon.value = longitude;
-      if (discLat) discLat.value = latitude;
-      if (discLon) discLon.value = longitude;
+/**
+ * TODO: 'registerHandlers'
+ * Register event listeners and prevent default form submission.
+ */
+function registerHandlers() {
+  const tagForm = document.getElementById("tag-form");
+  const discoveryForm = document.getElementById("discoveryFilterForm");
 
-      // Karte initialisieren
-      mapManager.initMap(latitude, longitude);
+  tagForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!tagForm.checkValidity()) return tagForm.reportValidity();
 
-      // Aufgabe 3.2.3: Marker für Discovery-Ergebnisse setzen
-      const tags = readTagsFromMapDataAttribute();
-      mapManager.updateMarkers(Number(latitude), Number(longitude), tags);
+    const tag = new GeoTag(
+      document.getElementById("name").value,
+      document.getElementById("latitude").value,
+      document.getElementById("longitude").value,
+      document.getElementById("hashtag").value
+    );
 
-      // Platzhalter entfernen
-      const mapContainer = document.getElementById("map");
-      if (mapContainer) {
-        const img = mapContainer.querySelector("img");
-        const span = mapContainer.querySelector("span");
-        if (img) img.remove();
-        if (span) span.remove();
-      }
+    const resp = await fetch("/api/geotags", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(tag),
     });
-  } catch (err) {
-    console.error("Geolocation API not available:", err);
-  }
+    if (!resp.ok) return;
+
+    updateDiscoveryWidget(await searchGeoTags());
+  });
+
+  discoveryForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!discoveryForm.checkValidity()) return discoveryForm.reportValidity();
+    updateDiscoveryWidget(await searchGeoTags());
+  });
+}
+
+/**
+ * TODO: 'searchGeoTags'
+ * Perform an AJAX request to retrieve GeoTags from the server.
+ */
+async function searchGeoTags() {
+  const lat = document.getElementById("disc-latitude")?.value ?? "";
+  const lon = document.getElementById("disc-longitude")?.value ?? "";
+  const searchterm = document.getElementById("searchterm")?.value ?? "";
+
+  const qs = new URLSearchParams();
+  if (lat) qs.set("latitude", lat);
+  if (lon) qs.set("longitude", lon);
+  if (searchterm) qs.set("searchterm", searchterm);
+
+  const resp = await fetch(`/api/geotags?${qs.toString()}`);
+  if (!resp.ok) return [];
+  return resp.json();
 }
 
 // Wait for the page to fully load its DOM content, then call updateLocation
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   updateLocation();
+  registerHandlers();
+  try {
+    updateDiscoveryWidget(await searchGeoTags());
+  } catch (_) {}
 });
-//updates location when document is loaded
